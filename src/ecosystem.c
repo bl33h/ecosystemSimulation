@@ -15,6 +15,8 @@
 #define HERB_CONSUMED_THRESHOLD 3
 #define CARN_REPRO_THRESHOLD 30
 #define CARN_CONSUMED_THRESHOLD 2
+#define HERBIVORE_DEATH_THRESHOLD 3
+#define CARNIVORE_DEATH_THRESHOLD 3
 
 // structure to represent a cell in the grid
 typedef struct {
@@ -25,6 +27,8 @@ typedef struct {
     int carnivores_consumed;
     int herbivore_energy;
     int carnivore_energy;
+    int herbivore_ticks_without_food;
+    int carnivore_ticks_without_food;
 } Cell;
 
 Cell grid[GRID_SIZE][GRID_SIZE];
@@ -40,6 +44,8 @@ void initializeEcosystem() {
             grid[i][j].carnivores_consumed = 0;
             grid[i][j].herbivore_energy = 0;
             grid[i][j].carnivore_energy = 0;
+            grid[i][j].herbivore_ticks_without_food = 0;
+            grid[i][j].carnivore_ticks_without_food = 0;
         }
     }
 }
@@ -75,7 +81,10 @@ void herbivoresConsumePlants(int i, int j) {
     if (grid[i][j].plants > 0 && grid[i][j].herbivores > 0) {
         grid[i][j].plants--;
         grid[i][j].herbivores_consumed++;
-        grid[i][j].herbivore_energy += 5; 
+        grid[i][j].herbivore_energy += 5;
+        grid[i][j].herbivore_ticks_without_food = 0;
+    } else {
+        grid[i][j].herbivore_ticks_without_food++;
     }
 }
 
@@ -84,7 +93,10 @@ void carnivoresConsumeHerbivores(int i, int j) {
     if (grid[i][j].herbivores > 0 && grid[i][j].carnivores > 0) {
         grid[i][j].herbivores--;
         grid[i][j].carnivores_consumed++;
-        grid[i][j].carnivore_energy += 10; 
+        grid[i][j].carnivore_energy += 10;
+        grid[i][j].carnivore_ticks_without_food = 0;
+    } else {
+        grid[i][j].carnivore_ticks_without_food++;
     }
 }
 
@@ -102,9 +114,12 @@ void moveHerbivores(int i, int j) {
     }
 
     // move to the cell with the most plants and no carnivores
-    if (best_move != -1) { 
-        grid[i + directions[best_move][0]][j + directions[best_move][1]].herbivores++;
-        grid[i][j].herbivores--;
+    if (best_move != -1) {
+        #pragma omp critical
+        {
+            grid[i + directions[best_move][0]][j + directions[best_move][1]].herbivores++;
+            grid[i][j].herbivores--;
+        }
     }
 }
 
@@ -122,9 +137,28 @@ void moveCarnivores(int i, int j) {
     }
 
     // move to the cell with the most herbivores
-    if (best_move != -1) { 
-        grid[i + directions[best_move][0]][j + directions[best_move][1]].carnivores++;
-        grid[i][j].carnivores--;
+    if (best_move != -1) {
+        #pragma omp critical
+        {
+            grid[i + directions[best_move][0]][j + directions[best_move][1]].carnivores++;
+            grid[i][j].carnivores--;
+        }
+    }
+}
+
+void checkDeaths() {
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (grid[i][j].herbivores > 0 && grid[i][j].herbivore_ticks_without_food >= HERBIVORE_DEATH_THRESHOLD) {
+                grid[i][j].herbivores = 0;
+                grid[i][j].herbivore_energy = 0;
+            }
+            if (grid[i][j].carnivores > 0 && grid[i][j].carnivore_ticks_without_food >= CARNIVORE_DEATH_THRESHOLD) {
+                grid[i][j].carnivores = 0;
+                grid[i][j].carnivore_energy = 0;
+            }
+        }
     }
 }
 
@@ -147,7 +181,9 @@ void updateEcosystem() {
                 reproduce(i, j, 2);
             }
         }
-        
+
+        checkDeaths();
+
         #pragma omp barrier
 
         int totalPlants = 0, totalHerbivores = 0, totalCarnivores = 0;
