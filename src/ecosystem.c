@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define GRID_SIZE 10
-#define NUM_TICKS 5000
+#define GRID_SIZE 100
+#define NUM_TICKS 2500
 
 // macro to find maximum of two numbers
 #define max(a,b) ((a) > (b) ? (a) : (b))
@@ -17,6 +17,12 @@
 #define CARN_CONSUMED_THRESHOLD 2
 #define HERBIVORE_DEATH_THRESHOLD 3
 #define CARNIVORE_DEATH_THRESHOLD 3
+
+// ANSI color codes
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define RESET   "\x1b[0m"
 
 // structure to represent a cell in the grid
 typedef struct {
@@ -202,7 +208,15 @@ void updateEcosystem() {
                 char dominant = 'P';
                 if (grid[i][j].herbivores > grid[i][j].plants && grid[i][j].herbivores > grid[i][j].carnivores) dominant = 'H';
                 if (grid[i][j].carnivores > grid[i][j].plants && grid[i][j].carnivores > grid[i][j].herbivores) dominant = 'C';
-                printf("%c ", dominant);
+                
+                // Print with color
+                if (dominant == 'P') {
+                    printf(GREEN "P " RESET);
+                } else if (dominant == 'H') {
+                    printf(YELLOW "H " RESET);
+                } else if (dominant == 'C') {
+                    printf(RED "C " RESET);
+                }
             }
             printf("\n");
         }
