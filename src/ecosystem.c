@@ -4,7 +4,7 @@
 #include <time.h>
 
 #define GRID_SIZE 10
-#define NUM_TICKS 10
+#define NUM_TICKS 5000
 
 // macro to find maximum of two numbers
 #define max(a,b) ((a) > (b) ? (a) : (b))
@@ -207,8 +207,6 @@ void updateEcosystem() {
             printf("\n");
         }
         printf("Plants: %d, Herbivores: %d, Carnivores: %d\n", totalPlants, totalHerbivores, totalCarnivores);
-        printf("* Total Herbivore Energy: %d\n", totalHerbivoreEnergy);
-        printf("* Total Carnivore Energy: %d\n", totalCarnivoreEnergy);
     }
 }
 
