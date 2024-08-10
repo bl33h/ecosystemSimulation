@@ -41,7 +41,7 @@ $ git clone https://github.com/bl33h/ecosystemSimulation
 # Open the project
 $ cd src
 
-#
+# Create the executable file
 $ gcc -fopenmp -o ecosystem ecosystem.c
 
 # Run the app
